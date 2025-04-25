@@ -5,3 +5,6 @@ import matplotlib.pyplot as plt
 
 #Single Cards
 #https://www.kaggle.com/datasets/gpiosenka/cards-image-datasetclassification
+
+direct = "ImageData/train"
+
