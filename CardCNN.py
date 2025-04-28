@@ -6,7 +6,7 @@ from torch.utils.data import Dataset, DataLoader
 from tqdm import tqdm
 from torchvision.io import read_image
 
-class MNIST(Dataset):
+class CardData(Dataset):
     def __init__(self):
         # https://www.kaggle.com/datasets/oddrationale/mnist-in-csv
         df = pd.read_csv("card_train.csv")
@@ -26,10 +26,10 @@ class MNIST(Dataset):
         return self.len
 
 
-class NumberClassify(nn.Module):
+class CardNetwork(nn.Module):
     def __init__(self):
         # Call the constructor of the super class
-        super(NumberClassify, self).__init__()
+        super(CardNetwork, self).__init__()
 
         self.in_to_h1 = nn.Conv2d(1, 32, (5, 5), padding=(2, 2))  # 32 x 224 x 224
         self.h1_to_h2 = nn.Conv2d(32, 32, kernel_size=(3, 3), padding=(1, 1))  # 32 x 224 x 224
@@ -53,7 +53,7 @@ class NumberClassify(nn.Module):
 
 def trainNN(epochs=5, batch_size=16, lr=0.001, display_test_acc=False, trained_network=None, save_file="cardNN.pt"):
     # load dataset
-    mnist = MNIST()
+    mnist = CardData()
 
     # create data loader
     mnist_loader = DataLoader(mnist, batch_size=batch_size, drop_last=True, shuffle=True)
@@ -62,7 +62,7 @@ def trainNN(epochs=5, batch_size=16, lr=0.001, display_test_acc=False, trained_n
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     # create CNN
-    number_classify = NumberClassify().to(device)
+    number_classify = CardNetwork().to(device)
     if trained_network is not None:
         number_classify.load_state_dict(trained_network)
         number_classify.train()
@@ -110,7 +110,7 @@ def predict_card(card_jpg=None, trained_model_path="cardNN.pt"):
         print("No image.")
         return
 
-    model = NumberClassify()
+    model = CardNetwork()
     model.load_state_dict(torch.load(trained_model_path))
     model.eval()
 
