@@ -4,7 +4,7 @@ from torch import nn
 from torch.nn import functional as F
 from torch.utils.data import Dataset, DataLoader
 from tqdm import tqdm
-
+from torchvision.io import read_image
 
 class MNIST(Dataset):
     def __init__(self):
@@ -51,7 +51,7 @@ class NumberClassify(nn.Module):
         return self.h4_to_out(x)  # 52
 
 
-def trainNN(epochs=5, batch_size=16, lr=0.001, display_test_acc=False):
+def trainNN(epochs=5, batch_size=16, lr=0.001, display_test_acc=False, trained_network=None, save_file="cardNN.pt"):
     # load dataset
     mnist = MNIST()
 
@@ -63,6 +63,10 @@ def trainNN(epochs=5, batch_size=16, lr=0.001, display_test_acc=False):
 
     # create CNN
     number_classify = NumberClassify().to(device)
+    if trained_network is not None:
+        number_classify.load_state_dict(trained_network)
+        number_classify.train()
+
     print(f"Total parameters: {sum(param.numel() for param in number_classify.parameters())}")
 
     # loss function
@@ -99,5 +103,18 @@ def trainNN(epochs=5, batch_size=16, lr=0.001, display_test_acc=False):
                 correct = (predictions == mnist.test_labels.to(device)).sum().item()
                 print(f"Accuracy on test set: {correct / len(mnist.test_labels):.4f}")
 
+    torch.save(number_classify.state_dict(), save_file)
+
+def predict_card(card_jpg=None, trained_model_path="cardNN.pt"):
+    if card_jpg is None:
+        print("No image.")
+        return
+
+    model = NumberClassify()
+    model.load_state_dict(torch.load(trained_model_path))
+    model.eval()
+
+    #use CNN to predict card here
 
 trainNN(epochs=5, display_test_acc=True)
+#predict_card()
