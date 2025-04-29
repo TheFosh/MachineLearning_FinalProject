@@ -76,7 +76,7 @@ def trainNN(epochs=5, batch_size=16, lr=0.001, display_test_acc=False):
     cross_entropy = nn.CrossEntropyLoss()
 
     # Use Adam Optimizer
-    optimizer = torch.optim.Adam(number_classify.parameters(), lr=lr)
+    optimizer = torch.optim.Adam(card_classify.parameters(), lr=lr)
 
     running_loss = 0.0
     for epoch in range(epochs):
@@ -88,7 +88,7 @@ def trainNN(epochs=5, batch_size=16, lr=0.001, display_test_acc=False):
 
             optimizer.zero_grad()
 
-            output = number_classify(x)
+            output = card_classify(x)
 
             loss = cross_entropy(output, y)
 
