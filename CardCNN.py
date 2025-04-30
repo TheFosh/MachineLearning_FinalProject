@@ -1,19 +1,24 @@
 import os
-
 import pandas as pd
 import torch
 from torch import nn
 from torch.nn import functional as F
 from torch.utils.data import Dataset, DataLoader
-from tqdm import tqdm
 from torchvision.io import read_image
+from tqdm import tqdm
 
 class CustomImageDataset(Dataset):
-    def __init__(self, annotations_file, img_dir, transform=None, target_transform=None):
+    def __init__(self, annotations_file, img_dir, is_train, transform=None, target_transform=None):
         self.img_labels = pd.read_csv(annotations_file)
         self.img_dir = img_dir
         self.transform = transform
         self.target_transform = target_transform
+
+        #set labels to dataframe containing only correct rows
+        if is_train:
+            self.img_labels = self.img_labels[self.img_labels['data set'] == 'train']
+        else:
+            self.img_labels = self.img_labels[self.img_labels['data set'] == 'test']
 
     def __len__(self):
         return len(self.img_labels)
@@ -22,7 +27,7 @@ class CustomImageDataset(Dataset):
         img_path = os.path.join(self.img_dir, self.img_labels.iloc[idx, 1])
         print(str(img_path))
         image = read_image(str(img_path))
-        print(f"Read: {str(img_path)}")
+        print(f"Success: {str(img_path)}")
         label = self.img_labels.iloc[idx, 2]
         if self.transform:
             image = self.transform(image)
@@ -55,11 +60,66 @@ class CardNetwork(nn.Module):
         x = F.relu(self.h3_to_h4(x))  # 20
         return self.h4_to_out(x)  # 52
 
-
 def trainNN(epochs=5, batch_size=16, lr=0.001, display_test_acc=False):
+    card_mapping = {
+        "ace of clubs": 0,
+        "ace of diamonds": 1,
+        "ace of hearts": 2,
+        "ace of spades": 3,
+        "eight of clubs": 4,
+        "eight of diamonds": 5,
+        "eight of hearts": 6,
+        "eight of spades": 7,
+        "five of clubs": 8,
+        "five of diamonds": 9,
+        "five of hearts": 10,
+        "five of spades": 11,
+        "four of clubs": 12,
+        "four of diamonds": 13,
+        "four of hearts": 14,
+        "four of spades": 15,
+        "jack of clubs": 16,
+        "jack of diamonds": 17,
+        "jack of hearts": 18,
+        "jack of spades": 19,
+        "joker": 20,
+        "king of clubs": 21,
+        "king of diamonds": 22,
+        "king of hearts": 23,
+        "king of spades": 24,
+        "nine of clubs": 25,
+        "nine of diamonds": 26,
+        "nine of hearts": 27,
+        "nine of spades": 28,
+        "queen of clubs": 29,
+        "queen of diamonds": 30,
+        "queen of hearts": 31,
+        "queen of spades": 32,
+        "seven of clubs": 33,
+        "seven of diamonds": 34,
+        "seven of hearts": 35,
+        "seven of spades": 36,
+        "six of clubs": 37,
+        "six of diamonds": 38,
+        "six of hearts": 39,
+        "six of spades": 40,
+        "ten of clubs": 41,
+        "ten of diamonds": 42,
+        "ten of hearts": 43,
+        "ten of spades": 44,
+        "three of clubs": 45,
+        "three of diamonds": 46,
+        "three of hearts": 47,
+        "three of spades": 48,
+        "two of clubs": 49,
+        "two of diamonds": 50,
+        "two of hearts": 51,
+        "two of spades": 52
+    }
+
     # load dataset
-    train_cards = CustomImageDataset("ImageData\\cards.csv", "ImageData")
-    test_cards = CustomImageDataset("ImageData\\cards.csv", "ImageData")
+    train_cards = CustomImageDataset("ImageData\\cards.csv", "ImageData", is_train=True)
+    test_cards = CustomImageDataset("ImageData\\cards.csv", "ImageData", is_train=False)
 
     # create data loader
     train_loader = DataLoader(train_cards, batch_size=batch_size, drop_last=True, shuffle=True)
