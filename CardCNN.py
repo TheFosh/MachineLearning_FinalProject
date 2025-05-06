@@ -74,7 +74,7 @@ class CardNetwork(nn.Module):
         x = F.relu(self.h3_to_h4(x))  # 20
         return self.h4_to_out(x)  # 52
 
-def trainNN(epochs=5, batch_size=16, lr=0.001, display_test_acc=False):
+def trainNN(epochs=5, batch_size=16, lr=0.001, display_test_acc=False, trained_network=None, save_file="cardNN.pt"):
 
     # load dataset
     train_cards = CustomImageDataset("ImageData\\cards.csv", "ImageData", is_train=True)
@@ -89,6 +89,9 @@ def trainNN(epochs=5, batch_size=16, lr=0.001, display_test_acc=False):
 
     # create CNN
     card_classify = CardNetwork().to(device)
+    if trained_network is not None:
+        card_classify.load_state_dict(trained_network)
+        card_classify.train()
     print(f"Total parameters: {sum(param.numel() for param in card_classify.parameters())}")
 
     # loss function
@@ -125,5 +128,6 @@ def trainNN(epochs=5, batch_size=16, lr=0.001, display_test_acc=False):
                 predictions = torch.argmax(card_classify(test_cards.images), dim=1)  # Get the prediction
                 correct = (predictions == test_cards.img_labels.to(device)).sum().item()
                 print(f"Accuracy on test set: {correct / len(test_cards.img_labels):.4f}")
+    torch.save(card_classify.state_dict(), save_file)
 
-trainNN(epochs=5, batch_size= 2, display_test_acc=True)
+trainNN(epochs=1, batch_size= 2, display_test_acc=True)
