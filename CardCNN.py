@@ -10,38 +10,39 @@ from tqdm import tqdm
 
 class CustomImageDataset(Dataset):
     def __init__(self, annotations_file, img_dir, is_train, transform=transforms.Grayscale(), target_transform=None):
-        self.img_labels = pd.read_csv(annotations_file)
+        self.annotations = pd.read_csv(annotations_file)
         self.img_dir = img_dir
         self.transform = transform
         self.target_transform = target_transform
 
         #set labels to dataframe containing only correct rows
         if is_train:
-            self.img_labels = self.img_labels[self.img_labels['data set'] == 'train']
+            self.annotations = self.annotations[self.annotations['data set'] == 'train']
         else:
-            self.img_labels = self.img_labels[self.img_labels['data set'] == 'test']
+            self.annotations = self.annotations[self.annotations['data set'] == 'test']
 
-        images = self.img_labels['filepaths'].to_numpy()
+        images = self.annotations['filepaths'].to_numpy()
         image_size = 224
-        self.images = torch.empty(len(self.img_labels), 1, image_size, image_size)
-        for i in range(len(self.img_labels)):
+        self.images = torch.empty(len(self.annotations), 1, image_size, image_size)
+        for i in range(len(self.annotations)):
             image = read_image("ImageData\\" + images[i])
             if self.transform:
                 image = self.transform(image)
             self.images[i] = image
 
-        print(self.images[0].shape)
+        an = self.annotations.copy()
+        self.img_labels = torch.tensor(an["class index"].to_numpy())
 
 
     def __len__(self):
-        return len(self.img_labels)
+        return len(self.annotations)
 
     def __getitem__(self, idx):
-        img_path = os.path.join(self.img_dir, self.img_labels.iloc[idx, 1])
+        img_path = os.path.join(self.img_dir, self.annotations.iloc[idx, 1])
         #print(str(img_path))
         image = read_image(str(img_path))/255
         #print(f"Success: {str(img_path)}")
-        label = self.img_labels.iloc[idx, 0]
+        label = self.annotations.iloc[idx, 0]
         if self.transform:
             image = self.transform(image)
         if self.target_transform:
