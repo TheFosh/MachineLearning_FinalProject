@@ -21,6 +21,18 @@ class CustomImageDataset(Dataset):
         else:
             self.img_labels = self.img_labels[self.img_labels['data set'] == 'test']
 
+        images = self.img_labels['filepaths'].to_numpy()
+        image_size = 224
+        self.images = torch.empty(len(self.img_labels), 1, image_size, image_size)
+        for i in range(len(self.img_labels)):
+            image = read_image("ImageData\\" + images[i])
+            if self.transform:
+                image = self.transform(image)
+            self.images[i] = image
+
+        print(self.images[0].shape)
+
+
     def __len__(self):
         return len(self.img_labels)
 
@@ -109,8 +121,8 @@ def trainNN(epochs=5, batch_size=16, lr=0.001, display_test_acc=False):
         running_loss = 0.0
         if display_test_acc:
             with torch.no_grad():
-                predictions = torch.argmax(card_classify(train_cards.test_numbers.to(device)), dim=1)  # Get the prediction
-                correct = (predictions == test_cards.test_labels.to(device)).sum().item()
-                print(f"Accuracy on test set: {correct / len(test_cards.test_labels):.4f}")
+                predictions = torch.argmax(card_classify(test_cards.images), dim=1)  # Get the prediction
+                correct = (predictions == test_cards.img_labels.to(device)).sum().item()
+                print(f"Accuracy on test set: {correct / len(test_cards.img_labels):.4f}")
 
-trainNN(epochs=5, display_test_acc=True)
+trainNN(epochs=5, batch_size= 2, display_test_acc=True)
