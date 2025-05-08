@@ -135,4 +135,4 @@ def trainNN(epochs=5, batch_size=16, lr=0.001, display_test_acc=False, trained_n
                 print(f"Accuracy on test set: {correct / len(test_cards.img_labels):.4f}")
     torch.save(card_classify.state_dict(), save_file)
 
-trainNN(epochs=25, batch_size= 128, display_test_acc=True)
+trainNN(epochs=25, batch_size=128, display_test_acc=True)
