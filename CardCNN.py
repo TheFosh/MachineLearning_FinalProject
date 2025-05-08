@@ -1,15 +1,17 @@
 import os
+
 import pandas as pd
 import torch
+import torchvision.transforms as transforms
 from torch import nn
 from torch.nn import functional as F
 from torch.utils.data import Dataset, DataLoader
 from torchvision.io import read_image
-import torchvision.transforms as transforms
 from tqdm import tqdm
 
+
 class CustomImageDataset(Dataset):
-    def __init__(self, annotations_file, img_dir, is_train, transform=transforms.Grayscale(), target_transform=None):
+    def __init__(self, annotations_file, img_dir, is_train, transform=None, target_transform=None):
         self.annotations = pd.read_csv(annotations_file)
         self.img_dir = img_dir
         self.transform = transform
@@ -23,7 +25,7 @@ class CustomImageDataset(Dataset):
 
         images = self.annotations['filepaths'].to_numpy()
         image_size = 224
-        self.images = torch.empty(len(self.annotations), 1, image_size, image_size)
+        self.images = torch.empty(len(self.annotations), 3, image_size, image_size)
         for i in range(len(self.annotations)):
             image = read_image("ImageData\\" + images[i])
             if self.transform:
@@ -55,7 +57,7 @@ class CardNetwork(nn.Module):
         # Call the constructor of the super class
         super(CardNetwork, self).__init__()
 
-        self.in_to_h1 = nn.Conv2d(1, 32, (5, 5), padding=(2, 2))  # 32 x 224 x 224
+        self.in_to_h1 = nn.Conv2d(3, 32, (5, 5), padding=(2, 2))  # 32 x 224 x 224
         self.h1_to_h2 = nn.Conv2d(32, 32, kernel_size=(3, 3), padding=(1, 1))  # 32 x 224 x 224
         # Maxpool2d -> 32 x 112 x 112
         self.h2_to_h3 = nn.Conv2d(32, 8, (3, 3), padding=(1, 1))  # 8 x 112 x 112
@@ -64,6 +66,8 @@ class CardNetwork(nn.Module):
         self.h4_to_out = nn.Linear(20, 53)  # 52
 
     def forward(self, x):
+        device = next(self.parameters()).device  # gets model's device (CPU or CUDA)
+        x = x.to(device)
         x = F.relu(self.in_to_h1(x))  # 32 x 224 x 224
         x = F.relu(self.h1_to_h2(x))  # 32 x 224 x 224
         x = F.dropout2d(x, 0.1)  # drop out 10% of the channels
@@ -85,6 +89,7 @@ def trainNN(epochs=5, batch_size=16, lr=0.001, display_test_acc=False, trained_n
     test_loader = DataLoader(test_cards, batch_size=batch_size, drop_last=True, shuffle=True)
 
     # determine which device to use
+    print(f"Cuda Available? {torch.cuda.is_available()}")
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     # create CNN
@@ -130,4 +135,4 @@ def trainNN(epochs=5, batch_size=16, lr=0.001, display_test_acc=False, trained_n
                 print(f"Accuracy on test set: {correct / len(test_cards.img_labels):.4f}")
     torch.save(card_classify.state_dict(), save_file)
 
-trainNN(epochs=1, batch_size= 2, display_test_acc=True)
+trainNN(epochs=25, batch_size= 128, display_test_acc=True)
