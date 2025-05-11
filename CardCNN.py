@@ -1,14 +1,13 @@
 import os
-
 import pandas as pd
 import torch
 import torchvision.transforms as transforms
 from torch import nn
 from torch.nn import functional as F
 from torch.utils.data import Dataset, DataLoader
+import torchvision
 from torchvision.io import read_image
 from tqdm import tqdm
-
 
 class CustomImageDataset(Dataset):
     def __init__(self, annotations_file, img_dir, is_train, transform=None, target_transform=None):
@@ -59,15 +58,18 @@ class CardNetwork(nn.Module):
 
         self.in_to_h1 = nn.Conv2d(3, 32, (5, 5), padding=(2, 2))  # 32 x 224 x 224
         self.h1_to_h2 = nn.Conv2d(32, 32, kernel_size=(3, 3), padding=(1, 1))  # 32 x 224 x 224
+        # Dropout 10%
         # Maxpool2d -> 32 x 112 x 112
         self.h2_to_h3 = nn.Conv2d(32, 8, (3, 3), padding=(1, 1))  # 8 x 112 x 112
         # Maxpool2d -> 8 x 56 x 56
         self.h3_to_h4 = nn.Linear(8 * 56 * 56, 20)  # 20
-        self.h4_to_out = nn.Linear(20, 53)  # 52
+        self.h4_to_out = nn.Linear(20, 53)  # 53
 
     def forward(self, x):
-        device = next(self.parameters()).device  # gets model's device (CPU or CUDA)
-        x = x.to(device)
+        if torch.cuda.is_available():
+            device = next(self.parameters()).device  # gets model's device (CPU or CUDA)
+            x = x.to(device)
+
         x = F.relu(self.in_to_h1(x))  # 32 x 224 x 224
         x = F.relu(self.h1_to_h2(x))  # 32 x 224 x 224
         x = F.dropout2d(x, 0.1)  # drop out 10% of the channels
@@ -135,4 +137,78 @@ def trainNN(epochs=5, batch_size=16, lr=0.001, display_test_acc=False, trained_n
                 print(f"Accuracy on test set: {correct / len(test_cards.img_labels):.4f}")
     torch.save(card_classify.state_dict(), save_file)
 
-trainNN(epochs=25, batch_size=128, display_test_acc=True)
+def predict_card(image_path, trained_model_path="cardNN.pt"):
+    card_mapping = {
+        0: "ace of clubs",
+        1: "ace of diamonds",
+        2: "ace of hearts",
+        3: "ace of spades",
+        4: "eight of clubs",
+        5: "eight of diamonds",
+        6: "eight of hearts",
+        7: "eight of spades",
+        8: "five of clubs",
+        9: "five of diamonds",
+        10: "five of hearts",
+        11: "five of spades",
+        12: "four of clubs",
+        13: "four of diamonds",
+        14: "four of hearts",
+        15: "four of spades",
+        16: "jack of clubs",
+        17: "jack of diamonds",
+        18: "jack of hearts",
+        19: "jack of spades",
+        20: "joker",
+        21: "king of clubs",
+        22: "king of diamonds",
+        23: "king of hearts",
+        24: "king of spades",
+        25: "nine of clubs",
+        26: "nine of diamonds",
+        27: "nine of hearts",
+        28: "nine of spades",
+        29: "queen of clubs",
+        30: "queen of diamonds",
+        31: "queen of hearts",
+        32: "queen of spades",
+        33: "seven of clubs",
+        34: "seven of diamonds",
+        35: "seven of hearts",
+        36: "seven of spades",
+        37: "six of clubs",
+        38: "six of diamonds",
+        39: "six of hearts",
+        40: "six of spades",
+        41: "ten of clubs",
+        42: "ten of diamonds",
+        43: "ten of hearts",
+        44: "ten of spades",
+        45: "three of clubs",
+        46: "three of diamonds",
+        47: "three of hearts",
+        48: "three of spades",
+        49: "two of clubs",
+        50: "two of diamonds",
+        51: "two of hearts",
+        52: "two of spades"
+    }
+
+    # resize image
+    transform = transforms.Compose([transforms.Resize((224, 224))])
+    image_tensor = transform(read_image(image_path) / 255.0).unsqueeze(0)
+
+    # Load the model
+    model = CardNetwork()
+    model.load_state_dict(torch.load(trained_model_path, map_location=torch.device("cpu")))
+    model.eval()
+
+    with torch.no_grad():
+        output = model(image_tensor)
+        prediction = card_mapping.get(torch.argmax(output, dim=1).item())
+
+    print(f"Prediction: {prediction}")
+
+#trainNN(epochs=25, batch_size=128, display_test_acc=True)
+predict_card("ImageData\\valid\\eight of clubs\\2.jpg")
+#predict_card("OtherImages\\sos.jpg")
