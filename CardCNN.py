@@ -2,6 +2,7 @@ import os
 import pandas as pd
 import torch
 import torchvision.transforms as transforms
+from matplotlib import pyplot as plt
 from torch import nn
 from torch.nn import functional as F
 from torch.utils.data import Dataset, DataLoader
@@ -137,6 +138,14 @@ def trainNN(epochs=5, batch_size=16, lr=0.001, display_test_acc=False, trained_n
                 print(f"Accuracy on test set: {correct / len(test_cards.img_labels):.4f}")
     torch.save(card_classify.state_dict(), save_file)
 
+#bar graph of top predictions, where the indices of values corresponds to those of labels
+def plot_predictions(labels, values, title="Predictions"):
+    plt.bar(labels, values)
+    plt.title(title)
+    plt.xlabel("Card")
+    plt.ylabel("Confidence")
+    plt.show()
+
 def predict_card(image_path, trained_model_path="cardNN.pt"):
     card_mapping = {
         0: "ace of clubs",
@@ -205,10 +214,16 @@ def predict_card(image_path, trained_model_path="cardNN.pt"):
 
     with torch.no_grad():
         output = model(image_tensor)
+        sorted_output, indices = torch.sort(model(image_tensor), descending=True)
+        print(f"Output: {output}")
+        print(f"Indices: {indices}")
+        top_five = [card_mapping.get(x.item()) for x in indices[0][:5]]
+        print(f"Top 5 Predictions: {top_five}")
+        plot_predictions(top_five, sorted_output[0][0:5])
         prediction = card_mapping.get(torch.argmax(output, dim=1).item())
 
     print(f"Prediction: {prediction}")
 
 #trainNN(epochs=25, batch_size=128, display_test_acc=True)
-predict_card("ImageData\\valid\\eight of clubs\\2.jpg")
-#predict_card("OtherImages\\sos.jpg")
+predict_card("ImageData\\valid\\ten of diamonds\\2.jpg")
+#predict_card("ImageData\\custom\\002.jpg")
