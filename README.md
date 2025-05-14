@@ -5,3 +5,4 @@
 <p> Poker hand recognition software.</p>
 
 ## Datasets:
+[Playing cards](https://www.kaggle.com/datasets/gpiosenka/cards-image-datasetclassification/data)
